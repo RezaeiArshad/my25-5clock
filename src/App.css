@@ -1,0 +1,106 @@
+.flex {
+  display: flex;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+}
+
+#root {
+  text-align: center;
+}
+
+.timers-container {
+  width: fit-content;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.italic {
+  font-size: 1.8rem;
+  font-family: sans-serif
+}
+
+.timer-container button {
+  padding: 8px 8px 8px 5px;
+  width: 50px;
+  margin: 10px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  border-radius: 5px;
+}
+
+.timer-container button:hover {
+  box-shadow: 0 0 5px 1px white;
+  transform: scale(1.05);
+}
+
+.timer-container button:active {
+  transform: scale(0.95);
+}
+
+.container-button:hover {
+  transform: scale(1.05)
+}
+
+.container-button:active {
+  transform: scale(0.95);
+}
+
+.minus:hover {
+  box-shadow: 0 0 10px 1px red;
+}
+
+.plus:hover {
+  box-shadow: 0 0 10px 1px limegreen
+}
+
+.container-button {
+  border-radius: 20px;
+  border: none;
+  cursor: pointer;
+  font-size: 1.2rem;
+  transition: all 0.2s ease;
+}
+
+@media (min-width: 800px) {
+  
+  .container-button {
+    margin: 0 30px;
+    width: 100px;
+  }
+
+  .session-container {
+    margin-left: 1%;
+  }
+
+  .break-container {
+    margin-right: 1%;
+  }
+}
+
+@media (max-width: 800px) {
+  body {
+    font-size: 0.8rem
+  }
+
+  .session-container div {
+    margin: 0 auto 40px auto;
+    width: fit-content;
+  }
+
+  .break-container div {
+    margin: 0 auto 40px auto;
+    width: fit-content;
+  }
+
+  .container-button {
+    font-size: 0.8rem;
+    width: 70px;
+    margin: 0 10px;
+  }
+
+}
