@@ -58,3 +58,17 @@ export const LockedProvider = ({ children }) => {
         </IsLockedContext.Provider>
     )
 }
+
+export const ResetContext = createContext({
+    reset: false
+})
+
+export const ResetProvider = ({ children }) => {
+    const [didReset, setDidReset] = useState(false);
+
+    return (
+        <ResetContext.Provider value={{ didReset, setDidReset}}>
+            {children}
+        </ResetContext.Provider>
+    )
+}

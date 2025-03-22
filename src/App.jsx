@@ -1,18 +1,42 @@
 import { useState, useContext, useEffect } from 'react'
 import './App.css'
-import { ScreenSizeProvider, useScreenSize, SessionProvider, SessionContext, BreakProvider, BreakContext, LockedProvider, IsLockedContext } from './contexts';
+import { ScreenSizeProvider, useScreenSize, SessionProvider, SessionContext, BreakProvider, BreakContext, LockedProvider, IsLockedContext, ResetContext, ResetProvider } from './contexts';
 
 function BreakTimer() {
-  const { breakx, setBreakx} = useContext(BreakContext)
+  const { breakx, setBreakx} = useContext(BreakContext);
+  const {lock} = useContext(IsLockedContext)
+  const {didReset} = useContext(ResetContext)
+
+  const handleButton = (value) => {
+    if(lock) return;
+
+    switch (value){
+      case "-":
+        if (breakx <= 1) return
+        setBreakx(breakx - 1)
+      break;
+      case "+":
+        if (breakx >= 60) return
+        setBreakx(breakx + 1)
+      break;  
+    }
+  }
+
+  useEffect(() => {
+    if(didReset){
+      setBreakx(5)
+    }
+  }, [didReset])
+
   return (
     <div className="break-container">
-      <h2>break duration</h2>
+      <h2 id="break-label">break duration</h2>
       <div className="flex can-be-locked">
-       <button onClick={() => setBreakx(breakx - 1)} className="minus container-button">
+       <button id="break-decrement" onClick={() => handleButton("-")} className="minus container-button">
        reduce
       </button>
-      <h3>{breakx}</h3>
-      <button onClick={() => setBreakx(breakx + 1)} className="plus container-button">
+      <h3 id="break-length">{breakx}</h3>
+      <button id="break-increment" onClick={() => handleButton("+")} className="plus container-button">
         increment
       </button>
       </div>
@@ -21,17 +45,40 @@ function BreakTimer() {
 }
 
 function SessionTimer() {
-  const { session, setSession} = useContext(SessionContext)
+  const { session, setSession} = useContext(SessionContext);
+  const {lock} = useContext(IsLockedContext);
+  const {didReset} = useContext(ResetContext)
+
+  const handleButton = (value) => {
+    if (lock) return
+
+    switch (value) {
+      case "-":
+        if (session <= 1) return
+        setSession(session - 1)
+      break;
+      case "+": 
+        if (session >= 60) return
+        setSession(session + 1)  
+      break;  
+    }
+  }
+
+  useEffect(() => {
+    if(didReset) {
+      setSession(25)
+    }
+  }, [didReset])
 
   return (
     <div className="session-container">
-      <h2>session duration</h2>
+      <h2 id="session-label">session duration</h2>
       <div className="flex can-be-locked">
-        <button onClick={() => setSession(session - 1)} className="minus container-button">
+        <button id="session-decrement" onClick={() => handleButton("-")} className="minus container-button">
           reduce
         </button>
-        <h3>{session}</h3>
-        <button onClick={() => setSession(session + 1)} className="plus container-button">
+        <h3 id="session-length">{session}</h3>
+        <button id="session-increment" onClick={() => handleButton("+")} className="plus container-button">
           increment
         </button>
       </div>
@@ -40,11 +87,14 @@ function SessionTimer() {
 }
 
 function Timer() {
-  const {breakx, setBreakx} = useContext(BreakContext);
-  const {session, setSession} = useContext(SessionContext);
+  const {breakx} = useContext(BreakContext);
+  const {session} = useContext(SessionContext);
+  const {lock, setLock} = useContext(IsLockedContext);
+  const {setDidReset} = useContext(ResetContext)
+
   const [sessionTime, setSessionTime] = useState(session * 60)
   const [breakTime, setBreakTime] = useState(breakx* 60);
-  const [isRunning, setIsRunning] = useState(false)
+  const [breakOrSession, setBreakOrSession] = useState("session")
   
   const getTime = (timeInSeconds) => {
     const timeMinute = Math.floor(timeInSeconds / 60);
@@ -54,36 +104,111 @@ function Timer() {
 
   const [onDash, setOnDash] = useState(getTime(sessionTime))
 
+  useEffect(() => {
+    setSessionTime(session * 60);
+    if (breakOrSession === "session") {
+      setOnDash(getTime(session * 60))
+      document.querySelector(".timer-numbers").style.color = "rgba(255, 255, 255, 0.87)"
+    }
+  }, [session])
+
+  useEffect(() => {
+    setBreakTime(breakx * 60);
+    if (breakOrSession === "break") {
+      setOnDash(getTime(breakx * 60))
+      document.querySelector(".timer-numbers").style.color = "rgba(255, 255, 255, 0.87)"
+    }
+  }, [breakx])
+
   const start = () => {
-    setIsRunning(true);
+    setLock(true);
+    setDidReset(false)
   }
 
   const pause = () => {
-    setIsRunning(false)
+    setLock(false)
+    setDidReset(false)
   }
 
   const reset = () => {
-    setIsRunning(false);
+    const audio = document.getElementById("beep")
+    audio.pause()
+    audio.currentTime = 0;
+    setLock(false);
+    setSessionTime(session * 60)
+    setBreakTime(breakx * 60)
     setOnDash(getTime(session * 60))
+    setBreakOrSession("session")
+    setDidReset(true)
+    setTimeout(() => {
+      setDidReset(false)
+    }, 50)
+    document.querySelector(".timer-numbers").style.color = "rgba(255, 255, 255, 0.87)"
   }
 
+
   useEffect(() => {
-    if (isRunning) {
-      setInterval(() => {
-      setSessionTime(sessionTime - 1)
-      setOnDash(getTime(sessionTime - 1))
+    let interval;
+    if (lock && sessionTime > 0 && breakOrSession === "session") {
+      interval = setInterval(() => {
+      setSessionTime((prevTime) => {
+        const newTime = prevTime - 1;
+        setOnDash(getTime(newTime));
+        return newTime;
+      })
     }, 1000)
+    if (sessionTime < 60) {
+      document.querySelector(".timer-numbers").style.color = "red"
     }
-      
-  }, [isRunning, sessionTime, breakTime, session, breakx])
+      return () => clearInterval(interval)
+    }
+    else if (sessionTime === 0 && breakOrSession === "session") {
+      const audio = document.getElementById("beep")
+      audio.currentTime = 0;
+      audio.play();
+      setTimeout(() => {
+        setBreakOrSession("break")
+        setSessionTime(session * 60)
+        setBreakTime(breakx * 60)
+        document.querySelector(".timer-numbers").style.color = "rgba(255, 255, 255, 0.87)"
+      })
+    }
+
+    if (lock && breakTime > 0 && breakOrSession === "break") {
+      interval = setInterval(() => {
+      setBreakTime((prevTime) => {
+        const newTime = prevTime - 1;
+        setOnDash(getTime(newTime));
+        return newTime;
+      })
+    }, 1000)
+    if (breakTime < 60) {
+      document.querySelector(".timer-numbers").style.color = "red"
+    }
+      return () => clearInterval(interval)
+    }
+    else if (breakTime === 0 && breakOrSession === "break") {
+      const audio = document.getElementById("beep")
+      audio.currentTime = 0;
+      audio.play();
+      setTimeout(() => {
+        setBreakOrSession("session")
+        setSessionTime(session * 60)
+        setBreakTime(breakx * 60)
+        document.querySelector(".timer-numbers").style.color = "rgba(255, 255, 255, 0.87)"
+      })
+    }
+
+  }, [lock, sessionTime, breakTime])
+
 
   return (
     <div className="timer-container">
-    <h2>having a <i className="italic">session</i></h2>
-    <h2 className="timer-numbers">{onDash}</h2>
+    <h2>having a <i id="timer-label" className="italic">{breakOrSession}</i></h2>
+    <h2 id="time-left" className="timer-numbers">{onDash}</h2>
     <button onClick={start}>play</button>
     <button onClick={pause}>pause</button>
-    <button onClick={reset}>restart</button>
+    <button id="reset" onClick={reset}>reset</button>
     </div>
   )
 }
@@ -99,12 +224,13 @@ function Dashboard() {
     else document.querySelectorAll(".can-be-locked").forEach((div) => {
       div.style.opacity = "1"
     })
-  }, [])
+  }, [lock])
   const {isMobile} = useScreenSize()
   return (
     <>
     {isMobile ? <div>
       <h1>my 25 + 5 clock</h1>
+      <audio id="beep" src='https://cdn.freecodecamp.org/testable-projects-fcc/audio/BeepSound.wav'></audio>
       <BreakTimer />
       <SessionTimer />
       <Timer />
@@ -112,6 +238,7 @@ function Dashboard() {
     <div>
       <h1>my 25 + 5 clock</h1>
       <div className="flex timers-container">
+        <audio id="beep" src='https://cdn.freecodecamp.org/testable-projects-fcc/audio/BeepSound.wav'></audio>
         <BreakTimer />
         <SessionTimer />
       </div>
@@ -124,19 +251,19 @@ function Dashboard() {
 
 
 function App() {
-  const [count, setCount] = useState(0)
 
   return (
-    <LockedProvider>
-      <BreakProvider>
-        <SessionProvider>
-          <ScreenSizeProvider>
-            <Dashboard />
-          </ScreenSizeProvider>
-        </SessionProvider>
-      </BreakProvider>
-    </LockedProvider>
-    
+    <ResetProvider>
+      <LockedProvider>
+        <BreakProvider>
+          <SessionProvider>
+            <ScreenSizeProvider>
+              <Dashboard />
+            </ScreenSizeProvider>
+          </SessionProvider>
+        </BreakProvider>
+      </LockedProvider>
+    </ResetProvider>
   )
 }
 
